@@ -62,10 +62,6 @@ fn main() -> Result<()> {
     let total_duration = Duration::from_secs_f64(args.minutes * 60.0);
     let start = Instant::now();
 
-    // Prevent scrolling/stacking
-    print!("\x1B[?1049h\x1B[?25l");
-    io::stdout().flush().unwrap();
-
     let _guard = TerminalGuard::new()?;
     let mut is_cancelled = false;
     loop {
@@ -126,10 +122,10 @@ fn main() -> Result<()> {
             .lines()
             .map(|line| format!("{}\x1B[K", line))
             .collect::<Vec<_>>()
-            .join("\n");
+            .join("\r\n");
 
         print!(
-            "\x1B[H{}\x1B[K\n{}\n  {}\x1B[K\x1B[J",
+            "\x1B[H{}\x1B[K\r\n{}\r\n  {}\x1B[K\x1B[J",
             header, clean_clock, bar
         );
 
@@ -164,9 +160,6 @@ fn main() -> Result<()> {
             thread::sleep(Duration::from_millis(350));
         }
     }
-
-    // Restore normal terminal screen & cursor
-    print!("\x1B[?25h\x1B[?1049l");
 
     Ok(())
 }
