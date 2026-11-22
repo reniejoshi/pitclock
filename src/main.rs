@@ -48,7 +48,7 @@ fn main() {
         let time_str = format!("{:02}:{:02}", mins, secs);
         let big_clock = render(Options {
             text: time_str,
-            font: Fonts::FontBlock,
+            font: Fonts::FontHuge,
             colors: vec![Colors::Rgb(Rgb::Val(r, g, b))],
             spaceless: true,
             ..Options::default()
