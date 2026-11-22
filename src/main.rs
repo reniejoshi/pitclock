@@ -1,7 +1,14 @@
 use cfonts::{Colors, Fonts, Options, Rgb, render};
 use clap::Parser;
+use crossterm::{
+    cursor::{Hide, Show},
+    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
+    execute,
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+};
 use owo_colors::OwoColorize;
-use std::io::{self, Write};
+use std::io::{self, Result, Write};
+use std::ops::Drop;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -14,7 +21,38 @@ struct Args {
     message: String,
 }
 
-fn main() {
+struct TerminalGuard;
+
+impl TerminalGuard {
+    fn new() -> Result<Self> {
+        enable_raw_mode()?;
+        execute!(io::stdout(), EnterAlternateScreen, Hide)?;
+        Ok(Self)
+    }
+}
+
+impl Drop for TerminalGuard {
+    fn drop(&mut self) {
+        let _ = execute!(io::stdout(), LeaveAlternateScreen, Show);
+        let _ = disable_raw_mode();
+    }
+}
+
+fn should_exit(wait: Duration) -> Result<bool> {
+    if event::poll(wait)? {
+        if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press
+                && key.modifiers.contains(KeyModifiers::CONTROL)
+                && key.code == KeyCode::Char('c')
+            {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
+fn main() -> Result<()> {
     let args = Args::parse();
     let total_duration = Duration::from_secs_f64(args.minutes * 60.0);
     let start = Instant::now();
@@ -83,6 +121,8 @@ fn main() {
             .collect::<Vec<_>>()
             .join("\n");
 
+        let _guard = TerminalGuard::new()?;
+
         print!(
             "\x1B[H{}\x1B[K\n{}\n  {}\x1B[K\x1B[J",
             header, clean_clock, bar
@@ -91,6 +131,10 @@ fn main() {
         io::stdout().flush().unwrap();
 
         thread::sleep(Duration::from_millis(100));
+
+        if should_exit(Duration::from_millis(100))? {
+            break;
+        }
     }
 
     // Flashing animation
@@ -116,4 +160,6 @@ fn main() {
     // Restore normal terminal screen & cursor
     print!("\x1B[?25h\x1B[?1049l");
     println!("{}", args.message);
+
+    Ok(())
 }
