@@ -42,8 +42,9 @@ fn should_exit(wait: Duration) -> Result<bool> {
     if event::poll(wait)? {
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press
-                && key.modifiers.contains(KeyModifiers::CONTROL)
-                && key.code == KeyCode::Char('c')
+                && (key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c'))
+                || key.code == KeyCode::Esc
+                || key.code == KeyCode::Char('q')
             {
                 return Ok(true);
             }
