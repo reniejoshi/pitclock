@@ -62,6 +62,7 @@ fn main() -> Result<()> {
     print!("\x1B[?1049h\x1B[?25l");
     io::stdout().flush().unwrap();
 
+    let _guard = TerminalGuard::new()?;
     loop {
         let elapsed = start.elapsed();
         if elapsed >= total_duration {
@@ -121,8 +122,6 @@ fn main() -> Result<()> {
             .map(|line| format!("{}\x1B[K", line))
             .collect::<Vec<_>>()
             .join("\n");
-
-        let _guard = TerminalGuard::new()?;
 
         print!(
             "\x1B[H{}\x1B[K\n{}\n  {}\x1B[K\x1B[J",
