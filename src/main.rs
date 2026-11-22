@@ -1,4 +1,4 @@
-use cfonts::{Colors, Fonts, Options, Rgb, render};
+use cfonts::{Colors, Fonts, Options, render};
 use clap::Parser;
 use crossterm::{
     cursor::{Hide, Show},
@@ -53,6 +53,22 @@ fn should_exit(wait: Duration) -> Result<bool> {
     Ok(false)
 }
 
+fn render_colored_ascii(text: &str, font: Fonts, rgb: (u8, u8, u8)) -> String {
+    let raw: String = render(Options {
+        text: text.to_string(),
+        font,
+        colors: vec![Colors::System],
+        ..Options::default()
+    })
+    .text;
+
+    raw.trim_matches('\n')
+        .lines()
+        .map(|line| format!("{}\x1B[K", line.truecolor(rgb.0, rgb.1, rgb.2)))
+        .collect::<Vec<_>>()
+        .join("\r\n")
+}
+
 fn main() -> Result<()> {
     // Set window title
     print!("\x1b]0;Pit Clock\x07");
@@ -87,13 +103,7 @@ fn main() -> Result<()> {
 
         // Block digits
         let time_str = format!("{:02}:{:02}", mins, secs);
-        let big_clock = render(Options {
-            text: time_str,
-            font: Fonts::FontHuge,
-            colors: vec![Colors::Rgb(Rgb::Val(r, g, b))],
-            spaceless: true,
-            ..Options::default()
-        });
+        let time_colored = render_colored_ascii(&time_str, Fonts::FontHuge, (r, g, b));
 
         // Progress bar
         let bar_width = 30;
@@ -117,8 +127,7 @@ fn main() -> Result<()> {
         );
 
         // Clean clock
-        let clean_clock = big_clock
-            .text
+        let clean_clock = time_colored
             .lines()
             .map(|line| format!("{}\x1B[K", line))
             .collect::<Vec<_>>()
@@ -143,19 +152,22 @@ fn main() -> Result<()> {
         // Flashing animation
         for i in 0..6 {
             let color = if i % 2 == 0 {
-                Rgb::Val(203, 166, 247) // Catppuccin Mauve
+                (203, 166, 247) // Catppuccin Mauve
             } else {
-                Rgb::Val(243, 139, 168) // Catppuccin Red
+                (243, 139, 168) // Catppuccin Red
             };
 
-            let banner = render(Options {
+            let banner: String =
+                render_colored_ascii(&args.message.clone(), Fonts::FontBlock, color);
+
+            /* let banner = render(Options {
                 text: args.message.clone(),
                 font: Fonts::FontBlock,
-                colors: vec![Colors::Rgb(color)],
+                colors: vec![Colors::System],
                 ..Options::default()
-            });
+            }); */
 
-            print!("\x1B[H{}\x1B[J\x07", banner.text);
+            print!("\x1B[H{}\x1B[J\x07", banner);
             io::stdout().flush().unwrap();
             thread::sleep(Duration::from_millis(350));
         }
