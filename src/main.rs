@@ -54,6 +54,10 @@ fn should_exit(wait: Duration) -> Result<bool> {
 }
 
 fn main() -> Result<()> {
+    // Set window title
+    print!("\x1b]0;Pit Clock\x07");
+    io::stdout().flush().unwrap();
+
     let args = Args::parse();
     let total_duration = Duration::from_secs_f64(args.minutes * 60.0);
     let start = Instant::now();
