@@ -63,6 +63,7 @@ fn main() -> Result<()> {
     io::stdout().flush().unwrap();
 
     let _guard = TerminalGuard::new()?;
+    let mut is_cancelled = false;
     loop {
         let elapsed = start.elapsed();
         if elapsed >= total_duration {
@@ -133,33 +134,35 @@ fn main() -> Result<()> {
         thread::sleep(Duration::from_millis(100));
 
         if should_exit(Duration::from_millis(100))? {
+            is_cancelled = true;
             break;
         }
     }
 
-    // Flashing animation
-    for i in 0..6 {
-        let color = if i % 2 == 0 {
-            Rgb::Val(203, 166, 247) // Catppuccin Mauve
-        } else {
-            Rgb::Val(243, 139, 168) // Catppuccin Red
-        };
+    if !is_cancelled {
+        // Flashing animation
+        for i in 0..6 {
+            let color = if i % 2 == 0 {
+                Rgb::Val(203, 166, 247) // Catppuccin Mauve
+            } else {
+                Rgb::Val(243, 139, 168) // Catppuccin Red
+            };
 
-        let banner = render(Options {
-            text: args.message.clone(),
-            font: Fonts::FontBlock,
-            colors: vec![Colors::Rgb(color)],
-            ..Options::default()
-        });
+            let banner = render(Options {
+                text: args.message.clone(),
+                font: Fonts::FontBlock,
+                colors: vec![Colors::Rgb(color)],
+                ..Options::default()
+            });
 
-        print!("\x1B[H{}\x1B[J\x07", banner.text);
-        io::stdout().flush().unwrap();
-        thread::sleep(Duration::from_millis(350));
+            print!("\x1B[H{}\x1B[J\x07", banner.text);
+            io::stdout().flush().unwrap();
+            thread::sleep(Duration::from_millis(350));
+        }
     }
 
     // Restore normal terminal screen & cursor
     print!("\x1B[?25h\x1B[?1049l");
-    println!("{}", args.message);
 
     Ok(())
 }
